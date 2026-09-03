@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebPull — Universal Web Scraper</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- =========================================================
+       HEADER
+  ========================================================== -->
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">⬇</span>
+        WebPull
+      </a>
+      <nav class="nav">
+        <a href="/" class="nav-link active">New Scrape</a>
+        <a href="/static/history.html" class="nav-link">History</a>
+        <a href="/static/profiles.html" class="nav-link">Profiles</a>
+        <a href="https://github.com" target="_blank" class="nav-link nav-github">
+          GitHub ↗
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       HERO  (shown before any interaction)
+  ========================================================== -->
+  <section class="hero" id="hero">
+    <div class="hero-inner">
+      <h1 class="hero-title">
+        Pull data from<br/>any website.
+      </h1>
+      <p class="hero-sub">
+        WebPull detects the site type, handles authentication,
+        and extracts exactly what you need — no code required.
+      </p>
+
+      <div class="url-bar">
+        <input
+          type="url"
+          id="urlInput"
+          class="url-input"
+          placeholder="https://example.com"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="btn btn-primary" id="startBtn">
+          Start →
+        </button>
+      </div>
+
+      <p class="hero-note">
+        Supports plain HTML · NextAuth · WordPress · Django · Laravel
+      </p>
+      <p id="metricsCounter" style="display:none;margin-top:10px;
+         font-size:0.78rem;color:var(--text-faint)"></p>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       WIZARD  (shown after URL is entered)
+  ========================================================== -->
+  <main class="wizard" id="wizard" hidden>
+
+    <!-- Progress bar -->
+    <div class="progress-bar">
+      <div class="progress-track">
+        <div class="progress-step active" data-step="1">
+          <span class="step-dot"></span>
+          <span class="step-label">Detect</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="2">
+          <span class="step-dot"></span>
+          <span class="step-label">Auth</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="3">
+          <span class="step-dot"></span>
+          <span class="step-label">Extract</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="4">
+          <span class="step-dot"></span>
+          <span class="step-label">Settings</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="5">
+          <span class="step-dot"></span>
+          <span class="step-label">Run</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================
+         STEP 1: DETECTION
+    ====================================================== -->
+    <div class="step" id="step-1">
+      <div class="step-card">
+        <div class="step-header">
+          <span class="step-number">1</span>
+          <div>
+            <h2 class="step-title">Detecting site type</h2>
+            <p class="step-desc" id="detectingUrl"></p>
+          </div>
+        </div>
+
+        <div class="detecting-animation" id="detectingAnim">
+          <div class="pulse-ring"></div>
+          <p>Probing the site...</p>
+        </div>
+
+        <div class="detection-result" id="detectionResult" hidden>
+          <div class="site-badge" id="siteBadge"></div>
+          <p class="detection-notes" id="detectionNotes"></p>
+          <div class="detection-signals" id="detectionSignals"></div>
+
+          <!-- Warning for JS/Cloudflare/Shopify -->
+          <div class="alert alert-warn" id="detectionWarn" hidden>
+            <strong>Heads up:</strong>
+            <span id="detectionWarnText"></span>
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-primary" id="step1Next">
+              Continue →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================
+         STEP 2: AUTHENTICATION
+    ====================================================== -->
+    <div class="step" id="step-2" hidden>
+      <div class="step-card">
+        <div class="step-header">
+          <span class="step-number">2</span>
+          <div>
+            <h2 class="step-title">Authentication</h2>
+            <p class="step-desc">
+              Does this page require a login?
+            </p>
+          </div>
+        </div>
+
+        <!-- Auth method selector -->
+        <div class="auth-options" id="authOptions">
+          <label class="option-card selected" data-auth="none">
+            <input type="radio" name="authMethod" value="none" checked hidden/>
+            <span class="option-icon">🌐</span>
+            <span class="option-title">Public page</span>
+            <span class="option-desc">No login required</span>
+          </label>
+
+          <label class="option-card" data-auth="nextauth">
+            <input type="radio" name="authMethod" value="nextauth" hidden/>
+            <span class="option-icon">⚡</span>
+            <span class="option-title">NextAuth</span>
+            <span class="option-desc">Next.js sites</span>
+          </label>
+
+          <label class="option-card" data-auth="wordpress">
+            <input type="radio" name="authMethod" value="wordpress" hidden/>
+            <span class="option-icon">🔵</span>
+            <span class="option-title">WordPress</span>
+            <span class="option-desc">WordPress login</span>
+          </label>
+
+          <label class="option-card" data-auth="html_form">
+            <input type="radio" name="authMethod" value="html_form" hidden/>
+            <span class="option-icon">📋</span>
+            <span class="option-title">HTML Form</span>
+            <span class="option-desc">Traditional login form</span>
+          </label>
+        </div>
+
+        <!-- Credentials form (shown when auth is required) -->
+        <div class="credentials-form" id="credentialsForm" hidden>
+          <div class="form-row" id="loginUrlRow" hidden>
+            <label class="form-label">Login page URL</label>
+            <input
+              type="url"
+              id="loginUrl"
+              class="form-input"
+              placeholder="https://example.com/login"
+            />
+          </div>
+
+          <div class="form-row" id="usernameFieldRow">
+            <label class="form-label">Username field name</label>
+            <input
+              type="text"
+              id="usernameField"
+              class="form-input"
+              placeholder="email"
+              value="email"
+            />
+            <p class="form-hint">
+              The HTML field name — usually <code>email</code> or <code>username</code>.
+              Check the site's login form if unsure.
+            </p>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Username / Email</label>
+            <input
+              type="text"
+              id="username"
+              class="form-input"
+              placeholder="your@email.com"
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Password</label>
+            <input
+              type="password"
+              id="password"
+              class="form-input"
+              placeholder="••••••••"
+              autocomplete="current-password"
+            />
+            <p class="form-hint">
+              Your credentials are sent directly to the target site
+              and are never stored by WebPull.
+            </p>
+          </div>
+        </div>
+
+        <div class="step-actions">
+          <button class="btn btn-ghost" onclick="goToStep(1)">← Back</button>
+          <button class="btn btn-primary" id="step2Next">Continue →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================
+         STEP 3: EXTRACTION
+    ====================================================== -->
+    <div class="step" id="step-3" hidden>
+      <div class="step-card">
+        <div class="step-header">
+          <span class="step-number">3</span>
+          <div>
+            <h2 class="step-title">What to extract</h2>
+            <p class="step-desc">Choose what data you want from the page.</p>
+          </div>
+        </div>
+
+        <!-- Extraction mode checkboxes -->
+        <div class="extract-grid">
+          <label class="check-card">
+            <input type="checkbox" name="extract" value="title" />
+            <span class="check-icon">📄</span>
+            <span class="check-title">Title</span>
+            <span class="check-desc">Page &lt;title&gt; tag</span>
+          </label>
+
+          <label class="check-card">
+            <input type="checkbox" name="extract" value="text" />
+            <span class="check-icon">📝</span>
+            <span class="check-title">Text</span>
+            <span class="check-desc">All visible text</span>
+          </label>
+
+          <label class="check-card">
+            <input type="checkbox" name="extract" value="links" />
+            <span class="check-icon">🔗</span>
+            <span class="check-title">Links</span>
+            <span class="check-desc">All hyperlinks</span>
+          </label>
+
+          <label class="check-card">
+            <input type="checkbox" name="extract" value="images" />
+            <span class="check-icon">🖼</span>
+            <span class="check-title">Images</span>
+            <span class="check-desc">Image URLs + alt text</span>
+          </label>
+
+          <label class="check-card">
+            <input type="checkbox" name="extract" value="headings" />
+            <span class="check-icon">📑</span>
+            <span class="check-title">Headings</span>
+            <span class="check-desc">H1 through H6</span>
+          </label>
+
+          <label class="check-card">
+            <input type="checkbox" name="extract" value="tables" />
+            <span class="check-icon">📊</span>
+            <span class="check-title">Tables</span>
+            <span class="check-desc">HTML table data</span>
+          </label>
+
+          <label class="check-card">
+            <input type="checkbox" name="extract" value="selector" id="selectorCheck"/>
+            <span class="check-icon">🎯</span>
+            <span class="check-title">CSS Selector</span>
+            <span class="check-desc">Target specific elements</span>
+          </label>
+
+          <label class="check-card">
+            <input type="checkbox" name="extract" value="structured" id="structuredCheck"/>
+            <span class="check-icon">🗂</span>
+            <span class="check-title">Structured</span>
+            <span class="check-desc">Named fields from repeating items</span>
+          </label>
+        </div>
+
+        <!-- CSS Selector input -->
+        <div class="conditional-form" id="selectorForm" hidden>
+          <div class="form-row">
+            <label class="form-label">CSS Selector</label>
+            <input
+              type="text"
+              id="cssSelector"
+              class="form-input form-mono"
+              placeholder=".product-name"
+            />
+            <p class="form-hint">
+              Examples: <code>.price</code> · <code>#main</code> ·
+              <code>.product .name</code> · <code>article h2</code>
+            </p>
+          </div>
+        </div>
+
+        <!-- Structured extraction inputs -->
+        <div class="conditional-form" id="structuredForm" hidden>
+          <div class="structured-explainer">
+            <strong>Structured extraction</strong> lets you pull named fields
+            from each repeating item — like products on a product listing page.
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Container selector</label>
+            <input
+              type="text"
+              id="containerSelector"
+              class="form-input form-mono"
+              placeholder=".product"
+            />
+            <p class="form-hint">
+              The CSS selector for each repeating item. Example: <code>.product</code>
+            </p>
+          </div>
+
+          <div class="fields-builder" id="fieldsBuilder">
+            <div class="fields-header">
+              <span class="form-label">Fields</span>
+              <button class="btn-add-field" onclick="addField()">+ Add field</button>
+            </div>
+            <div id="fieldsList">
+              <!-- Field rows added dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <div class="step-actions">
+          <button class="btn btn-ghost" onclick="goToStep(2)">← Back</button>
+          <button class="btn btn-primary" id="step3Next">Continue →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================
+         STEP 4: SETTINGS
+    ====================================================== -->
+    <div class="step" id="step-4" hidden>
+      <div class="step-card">
+        <div class="step-header">
+          <span class="step-number">4</span>
+          <div>
+            <h2 class="step-title">Settings</h2>
+            <p class="step-desc">Configure how WebPull fetches the data.</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <div class="form-row">
+            <label class="form-label">Pages to scrape</label>
+            <input
+              type="number"
+              id="pages"
+              class="form-input"
+              value="1"
+              min="1"
+              max="100"
+            />
+            <p class="form-hint">
+              How many pages to scrape (for paginated sites).
+            </p>
+          </div>
+
+          <div class="form-row" id="nextSelectorRow" hidden>
+            <label class="form-label">Next page selector</label>
+            <input
+              type="text"
+              id="nextSelector"
+              class="form-input form-mono"
+              placeholder="a.next"
+            />
+            <p class="form-hint">
+              CSS selector for the "next page" link.
+              Examples: <code>a.next</code> · <code>.pagination .next</code>
+            </p>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Delay between requests (seconds)</label>
+            <input
+              type="number"
+              id="delay"
+              class="form-input"
+              value="0.5"
+              min="0"
+              max="30"
+              step="0.1"
+            />
+            <p class="form-hint">
+              Be respectful — don't hammer servers. 0.5s is a sensible default.
+            </p>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Request timeout (seconds)</label>
+            <input
+              type="number"
+              id="timeout"
+              class="form-input"
+              value="20"
+              min="5"
+              max="120"
+            />
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Output format</label>
+            <div class="format-options">
+              <label class="format-option selected" data-fmt="json">
+                <input type="checkbox" name="fmt" value="json" checked hidden/>
+                JSON
+              </label>
+              <label class="format-option selected" data-fmt="csv">
+                <input type="checkbox" name="fmt" value="csv" checked hidden/>
+                CSV
+              </label>
+              <label class="format-option selected" data-fmt="txt">
+                <input type="checkbox" name="fmt" value="txt" checked hidden/>
+                TXT
+              </label>
+            </div>
+            <p class="form-hint">All three are always generated.</p>
+          </div>
+        </div>
+
+        <div class="step-actions">
+          <button class="btn btn-ghost" onclick="goToStep(3)">← Back</button>
+          <button class="btn btn-primary" id="step4Next">Run WebPull →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =====================================================
+         STEP 5: RUNNING + RESULTS
+    ====================================================== -->
+    <div class="step" id="step-5" hidden>
+      <div class="step-card">
+        <div class="step-header">
+          <span class="step-number">5</span>
+          <div>
+            <h2 class="step-title" id="step5Title">Running...</h2>
+            <p class="step-desc" id="step5Desc">
+              WebPull is fetching your data.
+            </p>
+          </div>
+        </div>
+
+        <!-- Live log feed -->
+        <div class="log-feed" id="logFeed">
+          <div class="log-entry log-info">Starting job...</div>
+        </div>
+
+        <!-- Results section (shown when done) -->
+        <div class="results-section" id="resultsSection" hidden>
+          <div class="results-summary" id="resultsSummary"></div>
+
+          <div class="download-buttons">
+            <a class="download-btn" id="dlJson" href="#">
+              <span class="dl-icon">{ }</span>
+              <span class="dl-info">
+                <span class="dl-label">JSON</span>
+                <span class="dl-hint">Structured data</span>
+              </span>
+              Download
+            </a>
+
+            <a class="download-btn" id="dlCsv" href="#">
+              <span class="dl-icon">⊞</span>
+              <span class="dl-info">
+                <span class="dl-label">CSV</span>
+                <span class="dl-hint">Open in Excel / Sheets</span>
+              </span>
+              Download
+            </a>
+
+            <a class="download-btn" id="dlTxt" href="#">
+              <span class="dl-icon">≡</span>
+              <span class="dl-info">
+                <span class="dl-label">TXT</span>
+                <span class="dl-hint">Human readable</span>
+              </span>
+              Download
+            </a>
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-ghost" onclick="resetToHome()">
+              ← Scrape another URL
+            </button>
+          </div>
+        </div>
+
+        <!-- Error section -->
+        <div class="error-section" id="errorSection" hidden>
+          <div class="alert alert-error">
+            <strong>Scrape failed.</strong>
+            <span id="errorText"></span>
+          </div>
+          <div class="step-actions">
+            <button class="btn btn-ghost" onclick="goToStep(4)">← Go back</button>
+            <button class="btn btn-primary" onclick="resetToHome()">Start over</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- =========================================================
+       FOOTER
+  ========================================================== -->
+  <footer class="footer">
+    <p>
+      WebPull is a tool. Use it responsibly —
+      only scrape websites and data you are authorized to access.
+    </p>
+    <p class="footer-meta">
+      Built with Python · FastAPI · BeautifulSoup ·
+      <a href="https://github.com" target="_blank">View on GitHub ↗</a>
+    </p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

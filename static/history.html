@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>History — WebPull</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">⬇</span>
+        WebPull
+      </a>
+      <nav class="nav">
+        <a href="/" class="nav-link">New Scrape</a>
+        <a href="/static/history.html" class="nav-link active">History</a>
+        <a href="/static/profiles.html" class="nav-link">Profiles</a>
+        <a href="https://github.com" target="_blank" class="nav-link nav-github">
+          GitHub ↗
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page-container">
+    <h1 class="page-title">History</h1>
+    <p class="page-subtitle">Your past scrape jobs. Results stay available until the server restarts.</p>
+
+    <div class="job-list" id="jobList">
+      <div class="empty-state">
+        <div class="pulse-ring" style="margin:0 auto"></div>
+        <p style="margin-top:16px;color:var(--text-faint);font-size:0.875rem">Loading jobs...</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>
+      WebPull is a tool. Use it responsibly —
+      only scrape websites and data you are authorized to access.
+    </p>
+    <p class="footer-meta">
+      Built with Python · FastAPI · BeautifulSoup ·
+      <a href="https://github.com" target="_blank">View on GitHub ↗</a>
+    </p>
+  </footer>
+
+  <script>
+    async function loadJobs() {
+      try {
+        const res  = await fetch("/api/jobs");
+        const jobs = await res.json();
+        renderJobs(jobs);
+      } catch (err) {
+        document.getElementById("jobList").innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <h3>Could not load jobs</h3>
+            <p>Make sure the WebPull server is running.</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderJobs(jobs) {
+      const list = document.getElementById("jobList");
+
+      if (!jobs || jobs.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <h3>No scrape jobs yet</h3>
+            <p>Start a new scrape from the home page.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = jobs.map(job => {
+        const dotClass = {
+          done   : "dot-done",
+          running: "dot-running",
+          failed : "dot-failed",
+          pending: "dot-pending",
+        }[job.state] || "dot-pending";
+
+        const time = job.finished_at
+          ? new Date(job.finished_at + "Z").toLocaleString()
+          : job.created_at
+          ? new Date(job.created_at + "Z").toLocaleString()
+          : "—";
+
+        const dlButtons = job.has_results ? `
+          <a class="job-dl-btn" href="/api/jobs/${job.id}/download/json" download>JSON</a>
+          <a class="job-dl-btn" href="/api/jobs/${job.id}/download/csv"  download>CSV</a>
+          <a class="job-dl-btn" href="/api/jobs/${job.id}/download/txt"  download>TXT</a>
+        ` : `<span style="font-size:0.75rem;color:var(--text-faint)">${job.state}</span>`;
+
+        return `
+          <div class="job-card">
+            <div class="job-status-dot ${dotClass}"></div>
+            <div class="job-info">
+              <div class="job-url">${escHtml(job.url)}</div>
+              <div class="job-meta">Job ${job.id} · ${time}</div>
+            </div>
+            <div class="job-actions">${dlButtons}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    loadJobs();
+
+    // Refresh every 5 seconds (for running jobs)
+    setInterval(loadJobs, 5000);
+  </script>
+
+</body>
+</html>

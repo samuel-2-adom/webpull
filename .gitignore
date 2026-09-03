@@ -1,0 +1,32 @@
+.DS_Store
+*.egg-info/
+venv/
+profiles/
+
+# Environment
+.env
+
+# Scraped results
+results/
+
+# User profiles (private to each instance)
+profiles/
+
+# Metrics (local counter)
+metrics.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp

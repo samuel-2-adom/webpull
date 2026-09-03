@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profiles — WebPull</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    .profiles-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .profile-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      background: var(--bg);
+      transition: all 0.15s ease;
+    }
+
+    .profile-card:hover {
+      border-color: var(--border-dark);
+      box-shadow: var(--shadow);
+    }
+
+    .profile-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .profile-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .profile-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .profile-card-url {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--text-faint);
+      margin-bottom: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .profile-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .profile-tag {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text-muted);
+    }
+
+    .profile-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-delete {
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-muted);
+      background: none;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all 0.15s ease;
+    }
+
+    .btn-delete:hover {
+      background: var(--red-bg);
+      border-color: var(--red-border);
+      color: var(--red);
+    }
+
+    /* Create form */
+    .create-section {
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      margin-bottom: 32px;
+      background: var(--bg-secondary);
+    }
+
+    .create-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+      background: none;
+      border: none;
+      font-family: var(--font);
+      padding: 0;
+    }
+
+    .create-toggle:hover { color: var(--accent-hover); }
+
+    .create-form { margin-top: 24px; }
+
+    .form-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-faint);
+      margin: 20px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: var(--shadow-lg);
+      animation: stepIn 0.2s ease;
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .modal-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* Run progress inside modal */
+    .modal-log {
+      background: #0d0d0d;
+      border-radius: var(--radius);
+      padding: 12px;
+      min-height: 120px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      line-height: 1.7;
+      margin: 16px 0;
+    }
+
+    .modal-downloads {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .form-two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <span class="logo-icon">⬇</span>
+        WebPull
+      </a>
+      <nav class="nav">
+        <a href="/" class="nav-link">New Scrape</a>
+        <a href="/static/history.html" class="nav-link">History</a>
+        <a href="/static/profiles.html" class="nav-link active">Profiles</a>
+        <a href="https://github.com" target="_blank" class="nav-link nav-github">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page-container">
+    <h1 class="page-title">Profiles</h1>
+    <p class="page-subtitle">
+      Save a site config once, run it anytime with one click.
+      Your credentials are never stored — only the scrape configuration is saved.
+    </p>
+
+    <!-- CREATE PROFILE -->
+    <div class="create-section">
+      <button class="create-toggle" onclick="toggleCreateForm()">
+        <span id="createToggleIcon">＋</span>
+        Create a new profile
+      </button>
+
+      <div class="create-form" id="createForm" hidden>
+
+        <div class="form-section-title">Basic Info</div>
+
+        <div class="form-two-col">
+          <div class="form-row">
+            <label class="form-label">Profile name</label>
+            <input type="text" id="pName" class="form-input" placeholder="My Shop" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Description (optional)</label>
+            <input type="text" id="pDesc" class="form-input" placeholder="Products from my store" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">URL</label>
+          <input type="url" id="pUrl" class="form-input form-mono" placeholder="https://example.com/products" />
+        </div>
+
+        <div class="form-section-title">Authentication</div>
+
+        <div class="form-row">
+          <label class="form-label">Auth method</label>
+          <select id="pAuthMethod" class="form-input" onchange="toggleProfileAuthFields()">
+            <option value="none">Public page — no login</option>
+            <option value="nextauth">NextAuth (Next.js)</option>
+            <option value="wordpress">WordPress</option>
+            <option value="html_form">HTML form login</option>
+          </select>
+        </div>
+
+        <div id="profileAuthFields" hidden>
+          <div class="form-two-col">
+            <div class="form-row">
+              <label class="form-label">Username field name</label>
+              <input type="text" id="pUsernameField" class="form-input" value="email" placeholder="email" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Password field name</label>
+              <input type="text" id="pPasswordField" class="form-input" value="password" placeholder="password" />
+            </div>
+          </div>
+          <div class="form-row" id="pLoginUrlRow" hidden>
+            <label class="form-label">Login page URL (if different)</label>
+            <input type="url" id="pLoginUrl" class="form-input form-mono" placeholder="https://example.com/login" />
+          </div>
+        </div>
+
+        <div class="form-section-title">What to Extract</div>
+
+        <div class="extract-grid" style="margin-bottom:12px">
+          <label class="check-card">
+            <input type="checkbox" name="pExtract" value="title" />
+            <span class="check-icon">📄</span>
+            <span class="check-title">Title</span>
+            <span class="check-desc">Page title</span>
+          </label>
+          <label class="check-card">
+            <input type="checkbox" name="pExtract" value="text" />
+            <span class="check-icon">📝</span>
+            <span class="check-title">Text</span>
+            <span class="check-desc">All visible text</span>
+          </label>
+          <label class="check-card">
+            <input type="checkbox" name="pExtract" value="links" />
+            <span class="check-icon">🔗</span>
+            <span class="check-title">Links</span>
+            <span class="check-desc">All hyperlinks</span>
+          </label>
+          <label class="check-card">
+            <input type="checkbox" name="pExtract" value="images" />
+            <span class="check-icon">🖼</span>
+            <span class="check-title">Images</span>
+            <span class="check-desc">Image URLs</span>
+          </label>
+          <label class="check-card">
+            <input type="checkbox" name="pExtract" value="tables" />
+            <span class="check-icon">📊</span>
+            <span class="check-title">Tables</span>
+            <span class="check-desc">HTML tables</span>
+          </label>
+          <label class="check-card">
+            <input type="checkbox" name="pExtract" value="selector" id="pSelectorCheck"
+              onchange="document.getElementById('pSelectorRow').hidden = !this.checked" />
+            <span class="check-icon">🎯</span>
+            <span class="check-title">CSS Selector</span>
+            <span class="check-desc">Specific elements</span>
+          </label>
+          <label class="check-card">
+            <input type="checkbox" name="pExtract" value="structured" id="pStructuredCheck"
+              onchange="document.getElementById('pStructuredRows').hidden = !this.checked" />
+            <span class="check-icon">🗂</span>
+            <span class="check-title">Structured</span>
+            <span class="check-desc">Named fields</span>
+          </label>
+        </div>
+
+        <div id="pSelectorRow" hidden class="form-row">
+          <label class="form-label">CSS Selector</label>
+          <input type="text" id="pSelector" class="form-input form-mono" placeholder=".product-name" />
+        </div>
+
+        <div id="pStructuredRows" hidden>
+          <div class="form-row">
+            <label class="form-label">Container selector</label>
+            <input type="text" id="pContainer" class="form-input form-mono" placeholder=".product" />
+          </div>
+          <div class="fields-header">
+            <span class="form-label">Fields</span>
+            <button class="btn-add-field" onclick="addProfileField()">+ Add field</button>
+          </div>
+          <div id="pFieldsList"></div>
+        </div>
+
+        <div class="form-section-title">Settings</div>
+
+        <div class="form-two-col">
+          <div class="form-row">
+            <label class="form-label">Pages to scrape</label>
+            <input type="number" id="pPages" class="form-input" value="1" min="1" max="100" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Delay between requests (s)</label>
+            <input type="number" id="pDelay" class="form-input" value="0.5" min="0" step="0.1" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">Tags (comma separated, optional)</label>
+          <input type="text" id="pTags" class="form-input" placeholder="ecommerce, nextauth, products" />
+        </div>
+
+        <div class="step-actions" style="border:none;padding:0;margin-top:20px">
+          <button class="btn btn-ghost" onclick="toggleCreateForm()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveProfile()">Save Profile →</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PROFILES LIST -->
+    <div id="profilesList">
+      <div class="empty-state">
+        <div class="pulse-ring" style="margin:0 auto"></div>
+        <p style="margin-top:16px;color:var(--text-faint);font-size:0.875rem">Loading profiles...</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- RUN MODAL -->
+  <div class="modal-overlay" id="runModal" hidden>
+    <div class="modal">
+      <div id="modalCredentials">
+        <div class="modal-title" id="modalTitle">Run Profile</div>
+        <div class="modal-sub" id="modalSub"></div>
+
+        <div id="modalAuthSection">
+          <div class="form-row">
+            <label class="form-label" id="modalUsernameLabel">Username / Email</label>
+            <input type="text" id="modalUsername" class="form-input"
+              placeholder="your@email.com" autocomplete="username" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Password</label>
+            <input type="password" id="modalPassword" class="form-input"
+              placeholder="••••••••" autocomplete="current-password" />
+            <p class="form-hint">Never stored — used only for this scrape.</p>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-primary" id="modalRunBtn" onclick="submitProfileRun()">
+            Run →
+          </button>
+        </div>
+      </div>
+
+      <!-- Progress state -->
+      <div id="modalProgress" hidden>
+        <div class="modal-title" id="modalProgressTitle">Running...</div>
+        <div class="modal-log" id="modalLog">
+          <div class="log-entry log-info">Starting...</div>
+        </div>
+      </div>
+
+      <!-- Done state -->
+      <div id="modalDone" hidden>
+        <div class="modal-title">Done!</div>
+        <div class="results-summary" id="modalSummary" style="margin:12px 0"></div>
+        <div class="modal-downloads">
+          <a class="job-dl-btn" id="modalDlJson" href="#" download>JSON</a>
+          <a class="job-dl-btn" id="modalDlCsv"  href="#" download>CSV</a>
+          <a class="job-dl-btn" id="modalDlTxt"  href="#" download>TXT</a>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+        </div>
+      </div>
+
+      <!-- Error state -->
+      <div id="modalError" hidden>
+        <div class="modal-title">Something went wrong</div>
+        <div class="alert alert-error" style="margin:12px 0">
+          <span id="modalErrorText"></span>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>
+      WebPull is a tool. Use it responsibly —
+      only scrape websites and data you are authorized to access.
+    </p>
+    <p class="footer-meta">
+      Built with Python · FastAPI · BeautifulSoup ·
+      <a href="https://github.com" target="_blank">View on GitHub ↗</a>
+    </p>
+  </footer>
+
+  <script>
+    // ============================================================
+    // STATE
+    // ============================================================
+    let activeProfileId = null;
+    let activeProfile   = null;
+    let runJobId        = null;
+    let runTimer        = null;
+    let runDone         = false;
+    let runLogCount     = 0;
+
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    document.addEventListener("DOMContentLoaded", loadProfiles);
+
+
+    // ============================================================
+    // LOAD PROFILES
+    // ============================================================
+    async function loadProfiles() {
+      try {
+        const res      = await fetch("/api/profiles");
+        const profiles = await res.json();
+        renderProfiles(profiles);
+      } catch (err) {
+        document.getElementById("profilesList").innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <h3>Could not load profiles</h3>
+            <p>Make sure the WebPull server is running.</p>
+          </div>`;
+      }
+    }
+
+
+    function renderProfiles(profiles) {
+      const list = document.getElementById("profilesList");
+
+      // Only show user-created profiles here
+      const userProfiles = profiles.filter(p => p.user_created);
+
+      if (userProfiles.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <h3>No profiles yet</h3>
+            <p>Create your first profile above to save a site config for reuse.</p>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = userProfiles.map(p => {
+        const authLabel = {
+          none      : "Public",
+          nextauth  : "NextAuth",
+          wordpress : "WordPress",
+          html_form : "HTML Form",
+        }[p.auth?.method || "none"] || "Public";
+
+        const tags = [
+          authLabel,
+          ...(p.tags || []),
+          ...(p.extract?.modes || []),
+        ].filter(Boolean);
+
+        return `
+          <div class="profile-card">
+            <div class="profile-card-header">
+              <div>
+                <div class="profile-card-title">${escHtml(p.name)}</div>
+                ${p.description ? `<div class="profile-card-desc">${escHtml(p.description)}</div>` : ""}
+                <div class="profile-card-url">${escHtml(p.url || "")}</div>
+              </div>
+            </div>
+            <div class="profile-card-meta">
+              ${tags.slice(0,6).map(t => `<span class="profile-tag">${escHtml(t)}</span>`).join("")}
+            </div>
+            <div class="profile-card-actions">
+              <button class="btn btn-primary" onclick="openRunModal('${p.id}')">
+                Run →
+              </button>
+              ${p.user_created ? `
+                <button class="btn-delete" onclick="deleteProfile('${p.id}')">
+                  Delete
+                </button>` : ""}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+
+    // ============================================================
+    // CREATE FORM
+    // ============================================================
+    function toggleCreateForm() {
+      const form = document.getElementById("createForm");
+      const icon = document.getElementById("createToggleIcon");
+      form.hidden = !form.hidden;
+      icon.textContent = form.hidden ? "＋" : "－";
+    }
+
+    function toggleProfileAuthFields() {
+      const method = document.getElementById("pAuthMethod").value;
+      document.getElementById("profileAuthFields").hidden = method === "none";
+      document.getElementById("pLoginUrlRow").hidden = method !== "html_form";
+    }
+
+    function addProfileField() {
+      const list = document.getElementById("pFieldsList");
+      const row  = document.createElement("div");
+      row.className = "field-row";
+      row.innerHTML = `
+        <input type="text" class="form-input form-mono p-field-name"
+          placeholder="field name (e.g. price)" style="flex:1" />
+        <input type="text" class="form-input form-mono p-field-selector"
+          placeholder="CSS selector (e.g. .price)" style="flex:1.5" />
+        <button class="btn-remove-field" onclick="this.closest('.field-row').remove()">×</button>
+      `;
+      list.appendChild(row);
+    }
+
+    function getProfileFields() {
+      const fields = {};
+      document.querySelectorAll(".p-field-name").forEach((el, i) => {
+        const name = el.value.trim();
+        const sel  = document.querySelectorAll(".p-field-selector")[i]?.value.trim();
+        if (name && sel) fields[name] = sel;
+      });
+      return fields;
+    }
+
+    function getProfileExtractModes() {
+      return Array.from(
+        document.querySelectorAll('input[name="pExtract"]:checked')
+      ).map(cb => cb.value);
+    }
+
+    async function saveProfile() {
+      const name = document.getElementById("pName").value.trim();
+      const url  = document.getElementById("pUrl").value.trim();
+
+      if (!name) { alert("Please enter a profile name."); return; }
+      if (!url)  { alert("Please enter a URL."); return; }
+
+      const modes = getProfileExtractModes();
+      if (modes.length === 0) { alert("Please select at least one extraction mode."); return; }
+
+      const tags = document.getElementById("pTags").value
+        .split(",").map(t => t.trim()).filter(Boolean);
+
+      const payload = {
+        name          : name,
+        description   : document.getElementById("pDesc").value.trim(),
+        url           : url,
+        auth_method   : document.getElementById("pAuthMethod").value,
+        username_field: document.getElementById("pUsernameField").value.trim() || "email",
+        password_field: document.getElementById("pPasswordField").value.trim() || "password",
+        login_url     : document.getElementById("pLoginUrl").value.trim(),
+        extract_modes : modes,
+        selector      : document.getElementById("pSelector").value.trim(),
+        container     : document.getElementById("pContainer").value.trim(),
+        fields        : getProfileFields(),
+        pages         : parseInt(document.getElementById("pPages").value) || 1,
+        delay         : parseFloat(document.getElementById("pDelay").value) || 0.5,
+        timeout       : 20,
+        tags          : tags,
+      };
+
+      try {
+        const res  = await fetch("/api/profiles", {
+          method : "POST",
+          headers: { "Content-Type": "application/json" },
+          body   : JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          toggleCreateForm();
+          resetCreateForm();
+          loadProfiles();
+        } else {
+          alert("Could not save profile.");
+        }
+      } catch (err) {
+        alert("Server error — could not save profile.");
+      }
+    }
+
+    function resetCreateForm() {
+      document.getElementById("pName").value = "";
+      document.getElementById("pDesc").value = "";
+      document.getElementById("pUrl").value  = "";
+      document.getElementById("pAuthMethod").value = "none";
+      document.getElementById("profileAuthFields").hidden = true;
+      document.getElementById("pFieldsList").innerHTML = "";
+      document.querySelectorAll('input[name="pExtract"]')
+        .forEach(cb => cb.checked = false);
+      document.getElementById("pSelectorRow").hidden   = true;
+      document.getElementById("pStructuredRows").hidden = true;
+      document.getElementById("pTags").value = "";
+    }
+
+    async function deleteProfile(profileId) {
+      if (!confirm("Delete this profile? This cannot be undone.")) return;
+
+      try {
+        const res = await fetch(`/api/profiles/${profileId}`, {
+          method: "DELETE",
+        });
+
+        if (res.ok) {
+          loadProfiles();
+        } else {
+          alert("Could not delete profile.");
+        }
+      } catch (err) {
+        alert("Server error.");
+      }
+    }
+
+
+    // ============================================================
+    // RUN MODAL
+    // ============================================================
+    async function openRunModal(profileId) {
+      // Fetch fresh profile data
+      const res      = await fetch("/api/profiles");
+      const profiles = await res.json();
+      activeProfile  = profiles.find(p => p.id === profileId);
+
+      if (!activeProfile) { alert("Profile not found."); return; }
+
+      activeProfileId = profileId;
+
+      // Reset modal state
+      resetModal();
+
+      const method = activeProfile.auth?.method || "none";
+
+      document.getElementById("modalTitle").textContent =
+        `Run: ${activeProfile.name}`;
+
+      document.getElementById("modalSub").textContent =
+        activeProfile.url || "";
+
+      // Hide auth fields for public pages
+      document.getElementById("modalAuthSection").hidden = method === "none";
+
+      if (method !== "none") {
+        document.getElementById("modalUsernameLabel").textContent =
+          method === "wordpress" ? "WordPress Username" : "Username / Email";
+      }
+
+      document.getElementById("runModal").hidden = false;
+    }
+
+    function closeModal() {
+      clearInterval(runTimer);
+      document.getElementById("runModal").hidden = true;
+      resetModal();
+    }
+
+    function resetModal() {
+      runJobId    = null;
+      runDone     = false;
+      runLogCount = 0;
+
+      document.getElementById("modalCredentials").hidden = false;
+      document.getElementById("modalProgress").hidden    = true;
+      document.getElementById("modalDone").hidden        = true;
+      document.getElementById("modalError").hidden       = true;
+      document.getElementById("modalUsername").value     = "";
+      document.getElementById("modalPassword").value     = "";
+      document.getElementById("modalLog").innerHTML =
+        '<div class="log-entry log-info">Starting...</div>';
+    }
+
+    async function submitProfileRun() {
+      const method   = activeProfile?.auth?.method || "none";
+      const username = document.getElementById("modalUsername").value.trim();
+      const password = document.getElementById("modalPassword").value.trim();
+
+      if (method !== "none" && (!username || !password)) {
+        alert("Please enter your username and password.");
+        return;
+      }
+
+      // Switch to progress view
+      document.getElementById("modalCredentials").hidden = true;
+      document.getElementById("modalProgress").hidden    = false;
+      document.getElementById("modalProgressTitle").textContent = "Running...";
+
+      try {
+        const res  = await fetch(`/api/profiles/${activeProfileId}/run`, {
+          method : "POST",
+          headers: { "Content-Type": "application/json" },
+          body   : JSON.stringify({ username, password }),
+        });
+
+        const data = await res.json();
+        runJobId   = data.job_id;
+
+        pollRunJob(data.job_id);
+
+      } catch (err) {
+        showModalError("Could not connect to WebPull server.");
+      }
+    }
+
+    function pollRunJob(jobId) {
+      runDone     = false;
+      runLogCount = 0;
+
+      runTimer = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/jobs/${jobId}`);
+          const job = await res.json();
+
+          const entries = job.log || [];
+          const feed    = document.getElementById("modalLog");
+
+          for (let i = runLogCount; i < entries.length; i++) {
+            const e   = entries[i];
+            const pre = {info:"  ",ok:"✓ ",warn:"⚠ ",error:"✗ "}[e.level] || "";
+            feed.insertAdjacentHTML("beforeend",
+              `<div class="log-entry log-${e.level}">${pre}${escHtml(e.message)}</div>`);
+            feed.scrollTop = feed.scrollHeight;
+          }
+          runLogCount = entries.length;
+
+          if (job.state === "done" && !runDone) {
+            runDone = true;
+            clearInterval(runTimer);
+            showModalDone(jobId);
+          }
+
+          if (job.state === "failed" && !runDone) {
+            runDone = true;
+            clearInterval(runTimer);
+            showModalError(job.error || "Scrape failed.");
+          }
+
+        } catch (err) { /* keep trying */ }
+      }, 1500);
+    }
+
+    async function showModalDone(jobId) {
+      document.getElementById("modalProgress").hidden = true;
+      document.getElementById("modalDone").hidden     = false;
+
+      document.getElementById("modalDlJson").href = `/api/jobs/${jobId}/download/json`;
+      document.getElementById("modalDlCsv").href  = `/api/jobs/${jobId}/download/csv`;
+      document.getElementById("modalDlTxt").href  = `/api/jobs/${jobId}/download/txt`;
+
+      try {
+        const res  = await fetch(`/api/jobs/${jobId}/download/json`);
+        const data = await res.json();
+        const count = Array.isArray(data) ? data.length : "—";
+        document.getElementById("modalSummary").textContent =
+          `✓ ${count} record${count !== 1 ? "s" : ""} scraped successfully.`;
+      } catch (e) {
+        document.getElementById("modalSummary").textContent = "✓ Scrape complete.";
+      }
+    }
+
+    function showModalError(msg) {
+      document.getElementById("modalProgress").hidden = true;
+      document.getElementById("modalError").hidden    = false;
+      document.getElementById("modalErrorText").textContent = msg;
+    }
+
+
+    // ============================================================
+    // UTILS
+    // ============================================================
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    // Close modal on overlay click
+    document.addEventListener("click", e => {
+      const modal = document.getElementById("runModal");
+      if (e.target === modal) closeModal();
+    });
+  </script>
+
+</body>
+</html>

@@ -40,7 +40,7 @@ extracts structured data, and exports to JSON, CSV, and TXT.
 
 **1. Clone the repo**
 ```bash
-git clone https://github.com/samuel-2-adom/webpull.git/yourusername/webpull.git
+git clone https://github.com/samuel-2-adom/webpull.git
 cd webpull
 ```
 
@@ -104,7 +104,7 @@ sudo apt install python3-pip python3-venv nginx supervisor -y
 **3. Clone and install WebPull**
 ```bash
 cd /home/ubuntu
-git clone https://github.com/samuel-2-adom/webpull.git/samuel-2-adom/webpull.git/yourusername/webpull.git
+git clone https://github.com/samuel-2-adom/webpull.git/samuel-2-adom/webpull.git
 cd webpull
 python3 -m venv venv
 source venv/bin/activate
